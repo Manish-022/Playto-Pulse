@@ -40,7 +40,7 @@ const CommentNode = ({ comment, postId, depth }) => {
     });
 
     const replyMutation = useMutation({
-        mutationFn: () => api.post(`posts/${postId}/comments/`, { content: replyContent, parent: comment.id }),
+        mutationFn: (variables) => api.post(`posts/${postId}/comments/`, variables),
         onSuccess: () => {
             setIsReplying(false);
             setReplyContent('');
@@ -51,7 +51,10 @@ const CommentNode = ({ comment, postId, depth }) => {
     const submitReply = (e) => {
         e.preventDefault();
         if (replyContent.trim()) {
-            replyMutation.mutate();
+            replyMutation.mutate({
+                content: replyContent,
+                parent: comment.id
+            });
         }
     };
 

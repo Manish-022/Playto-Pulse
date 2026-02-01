@@ -129,3 +129,54 @@ class LeaderboardTests(TestCase):
         # If bug exists, it might report generic multiplication (e.g. 2*2=4 for each count)
         # 4 * 5 + 4 * 1 = 24
         self.assertEqual(u3_data['karma'], 12, f"Expected 12, got {u3_data['karma']}")
+
+class CommentTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='u1', password='password')
+        self.post = Post.objects.create(content='P1', author=self.user)
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_nested_comment_creation(self):
+        """Test creating a reply to an existing comment"""
+        from rest_framework import status
+        
+        # 1. Create root comment
+        # Note: the URL for adding a comment via @action is /api/posts/<pk>/comments/
+        # But for test client, we use reverse logic or hardcoded path if needed.
+        # reverse('post-add-comment', ...) might be 'post-add-comment' if DefaultRouter names it so?
+        # Usually it is 'post-add-comment' or 'post-comments' depending on router.
+        # Let's try reverse first.
+        
+        # Checking router names:
+        # router.register(r'posts', PostViewSet) -> 'post-list', 'post-detail'
+        # @action(url_path='comments') -> 'post-add-comment' (likely)
+        
+        try:
+            url = reverse('post-add-comment', kwargs={'pk': self.post.pk})
+        except:
+             # Fallback to manual construction
+             url = f'/api/posts/{self.post.pk}/comments/'
+
+        root_data = {'content': 'Root comment'}
+        response = self.client.post(url, root_data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        root_id = response.data['id']
+        
+        # 2. Create reply (nested)
+        reply_data = {'content': 'Reply to root', 'parent': root_id}
+        response_reply = self.client.post(url, reply_data)
+        
+        self.assertEqual(response_reply.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response_reply.data['parent'], root_id)
+        
+        # 3. Verify it appears in post detail (tree)
+        url_detail = reverse('post-detail', kwargs={'pk': self.post.pk})
+        response_detail = self.client.get(url_detail)
+        
+        comments = response_detail.data['comments']
+        # Find root
+        root_node = next(c for c in comments if c['id'] == root_id)
+        # Check replies
+        self.assertEqual(len(root_node['replies']), 1)
+        self.assertEqual(root_node['replies'][0]['content'], 'Reply to root')
