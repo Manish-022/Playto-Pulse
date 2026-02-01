@@ -6,38 +6,34 @@ import { Heart, Reply, CornerDownRight } from 'lucide-react';
 const CommentNode = ({ comment, postId, depth }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [replyContent, setReplyContent] = useState('');
+
+    // Optimistic UI State
+    const [liked, setLiked] = useState(comment.is_liked);
+    const [likesCount, setLikesCount] = useState(comment.likes_count);
+
+    // Sync with server state when refetch happens
+    React.useEffect(() => {
+        setLiked(comment.is_liked);
+        setLikesCount(comment.likes_count);
+    }, [comment.is_liked, comment.likes_count]);
+
     const queryClient = useQueryClient();
 
     const likeMutation = useMutation({
         mutationFn: () => api.post(`comments/${comment.id}/like/`),
         onMutate: async () => {
-            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-            await queryClient.cancelQueries(['post', postId]);
-
-            // Snapshot the previous value
-            const previousPost = queryClient.getQueryData(['post', postId]);
-
-            // Optimistically update to the new value
-            // Note: Updating deep nested comment tree is hard. 
-            // Simplified approach: Just assume success and let validity check happen onSettled.
-            // But user wants "instant" feel.
-            // We need to find the node in the tree.
-            // Since it's recursive, finding it in the cache for 'post' detail is tricky without traversal.
-            // Use onSuccess for now? User said "taking time".
-            // The lag is likely the Round Trip Time + Re-render.
-            // I will stick to invalidation for comments to avoid complex tree traversal bugs during prototype
-            // BUT I will add a loading state or instant visual feedback locally using local state?
-            // Local state is easiest for "instant" toggle.
-
-            // Let's try UI-only optimistic state for the button itself?
-            // No, consistency matters.
-
-            // Revert to simple Invalidation? That's what I just did.
-            // User says "taking time".
-            // Maybe the server is slow?
-            // I'll add "Optimistic UI" via local state shim ONLY for the icon, then sync.
+            // Optimistic Update
+            const previousLiked = liked;
+            setLiked(!previousLiked);
+            setLikesCount(prev => previousLiked ? prev - 1 : prev + 1);
+        },
+        onError: (err, variables, context) => {
+            // Revert on error
+            setLiked(comment.is_liked);
+            setLikesCount(comment.likes_count);
         },
         onSuccess: () => {
+            // Silent refresh (eventual consistency)
             queryClient.invalidateQueries(['post', postId]);
             queryClient.invalidateQueries(['leaderboard']);
         }
@@ -60,9 +56,8 @@ const CommentNode = ({ comment, postId, depth }) => {
     };
 
     return (
-        <div className={`group ${depth > 0 ? 'ml-0' : ''}`}> {/* Indentation handled by parent wrapper or recursive structure logic */}
+        <div className={`group ${depth > 0 ? 'ml-0' : ''}`}>
             <div className="flex gap-3">
-                {/* Visual thread line could go here */}
                 <div className="flex-1">
                     <div className="bg-white border rounded-lg p-3 hover:shadow-sm transition-shadow">
                         <div className="flex items-center justify-between mb-1">
@@ -74,10 +69,10 @@ const CommentNode = ({ comment, postId, depth }) => {
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => likeMutation.mutate()}
-                                className={`flex items-center gap-1 text-xs font-medium ${comment.is_liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                                className={`flex items-center gap-1 text-xs font-medium ${liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
                             >
-                                <Heart className={`w-3.5 h-3.5 ${comment.is_liked ? 'fill-current' : ''}`} />
-                                <span>{comment.likes_count}</span>
+                                <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
+                                <span>{likesCount}</span>
                             </button>
 
                             <button
@@ -121,7 +116,6 @@ const CommentNode = ({ comment, postId, depth }) => {
                         </form>
                     )}
 
-                    {/* Recursive children */}
                     {comment.replies && comment.replies.length > 0 && (
                         <div className="mt-3 pl-4 border-l-2 border-gray-100 space-y-3">
                             {comment.replies.map(reply => (
@@ -134,4 +128,5 @@ const CommentNode = ({ comment, postId, depth }) => {
         </div>
     );
 };
+
 export default CommentNode;
