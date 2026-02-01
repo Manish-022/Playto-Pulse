@@ -9,8 +9,35 @@ const CreatePost = () => {
 
     const mutation = useMutation({
         mutationFn: (newContent) => api.post('posts/', { content: newContent }),
+        onMutate: async (newContent) => {
+            // Cancel any outgoing refetches
+            await queryClient.cancelQueries(['posts']);
+
+            // Snapshot the previous value
+            const previousPosts = queryClient.getQueryData(['posts']);
+
+            // Optimistically update to the new value
+            const newPost = {
+                id: Date.now(), // Temporary ID
+                content: newContent,
+                author: { username: 'You' }, // Placeholder
+                created_at: new Date().toISOString(),
+                likes_count: 0,
+                is_liked: false,
+                comments_count: 0
+            };
+
+            queryClient.setQueryData(['posts'], (old) => [newPost, ...(old || [])]);
+            setContent(''); // Clear input immediately
+
+            return { previousPosts };
+        },
+        onError: (err, newContent, context) => {
+            queryClient.setQueryData(['posts'], context.previousPosts);
+            setContent(newContent); // Restore input on fail
+        },
         onSuccess: () => {
-            setContent('');
+            // Still refetch to get real ID and server data
             queryClient.invalidateQueries(['posts']);
         },
     });
