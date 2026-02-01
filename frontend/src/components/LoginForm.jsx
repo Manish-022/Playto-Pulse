@@ -2,12 +2,24 @@ import React, { useState } from 'react';
 import api from '../api';
 
 const LoginForm = ({ onLogin }) => {
-    const [username, setUsername] = useState('user0'); // Default to seeded user
+    const [username, setUsername] = useState('user0');
     const [password, setPassword] = useState('password');
+
+    React.useEffect(() => {
+        const token = localStorage.getItem('authToken');
+        const user = localStorage.getItem('username');
+        if (token && user) {
+            api.defaults.headers.common['Authorization'] = `Basic ${token}`;
+            // Optional: Validate token with a quick call or just assume valid to unblock UI
+            onLogin(user);
+        }
+    }, [onLogin]);
 
     const handleLogin = (e) => {
         e.preventDefault();
         const token = btoa(`${username}:${password}`);
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('username', username);
         api.defaults.headers.common['Authorization'] = `Basic ${token}`;
 
         // Simple validation check (optional, or just assume success for prototype)
