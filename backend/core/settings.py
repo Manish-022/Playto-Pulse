@@ -35,11 +35,12 @@ DEBUG = True
 
 # ALLOWED_HOSTS defined above via env var
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-]
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",
+#     "http://localhost:5174",
+#     "http://localhost:5175",
+# ]
 
 
 # Application definition
