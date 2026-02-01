@@ -50,6 +50,13 @@ class PerformanceTests(TestCase):
         # Expected: ~4-6 queries. Definitely < 10.
         self.assertLess(len(queries), 10, f"Too many queries: {len(queries)}")
 
+    def test_post_detail_anonymous(self):
+        """Test retrieving post detail as anonymous user"""
+        self.client.logout()
+        response = self.client.get(reverse('post-detail', args=[self.post.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.data['comments']) > 0)
+
 class ConcurrencyTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='c_user', password='password')

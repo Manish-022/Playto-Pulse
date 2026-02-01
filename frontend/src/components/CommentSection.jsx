@@ -22,7 +22,15 @@ const CommentSection = ({ postId }) => {
     });
 
     if (isLoading) return <div className="py-4 text-center"><Loader2 className="animate-spin inline w-5 h-5 text-indigo-600" /> Loading comments...</div>;
-    if (error) return <div className="text-red-500 py-2">Error loading comments.</div>;
+    if (error) return (
+        <div className="text-red-500 py-2 text-sm bg-red-50 p-3 rounded">
+            Error loading help: {error.message}
+            {error.response && error.response.status === 500 && " (Server Error)"}
+            {error.response && error.response.status === 404 && " (Post not found)"}
+            <br />
+            <button onClick={() => window.location.reload()} className="underline mt-1">Retry</button>
+        </div>
+    );
 
     const handleSubmit = (e) => {
         e.preventDefault();
