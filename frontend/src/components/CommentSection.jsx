@@ -15,8 +15,37 @@ const CommentSection = ({ postId }) => {
 
     const commentMutation = useMutation({
         mutationFn: (content) => api.post(`posts/${postId}/comments/`, { content }),
-        onSuccess: () => {
+        onMutate: async (newContent) => {
+            await queryClient.cancelQueries(['post', postId]);
+            const previousPost = queryClient.getQueryData(['post', postId]);
+
+            queryClient.setQueryData(['post', postId], (oldPost) => {
+                if (!oldPost) return oldPost;
+                const newCommentNode = {
+                    id: Date.now(),
+                    content: newContent,
+                    author: { username: localStorage.getItem('username') || 'You' },
+                    created_at: new Date().toISOString(),
+                    likes_count: 0,
+                    is_liked: false,
+                    replies: []
+                };
+                return {
+                    ...oldPost,
+                    comments: [...(oldPost.comments || []), newCommentNode]
+                };
+            });
             setNewComment('');
+            return { previousPost };
+        },
+        onError: (err, newContent, context) => {
+            if (context?.previousPost) {
+                queryClient.setQueryData(['post', postId], context.previousPost);
+            }
+            setNewComment(newContent);
+            alert("Failed to post comment: " + err.message);
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries(['post', postId]);
         }
     });
