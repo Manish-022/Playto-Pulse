@@ -1,0 +1,29 @@
+# System
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Django
+*.sqlite3
+db.sqlite3
+/backend/staticfiles/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Frontend Build
+/frontend/dist/
+/frontend/coverage/
+
+# IDEs
+.vscode/
+.idea/
