@@ -9,6 +9,10 @@ A Reddit-like community feed with threaded comments and a 24h dynamic leaderboar
   - Comment Like = 1 pt
 - **Concurrency Support**: Database constraints to prevent double-voting.
 - **Optimized Queries**: Solves N+1 problem on recursive comments.
+- **High Performance**: 
+  - Paginated feeds (Infinite Scroll)
+  - Indexed database fields for <2s response times
+  - Optimized count aggregations
 
 ## Tech Stack
 - **Backend**: Django, Django REST Framework, SQLite (for demo)

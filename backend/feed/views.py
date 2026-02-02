@@ -17,7 +17,7 @@ class PostViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         user = self.request.user
         qs = qs.annotate(
-            likes_count=Count('likes', distinct=True),
+            likes_count=Count('likes'),
             is_liked=Exists(Like.objects.filter(user=user, post=OuterRef('pk'))) if user.is_authenticated else Value(False)
         )
         return qs
@@ -34,7 +34,7 @@ class PostViewSet(viewsets.ModelViewSet):
         # Fetch all comments for this post in one query (N+1 protection)
         user = request.user
         comments_qs = Comment.objects.filter(post=instance).select_related('author').annotate(
-            likes_count=Count('likes', distinct=True),
+            likes_count=Count('likes'),
             is_liked=Exists(Like.objects.filter(user=user, comment=OuterRef('pk'))) if user.is_authenticated else Value(False)
         ).order_by('created_at')
 
