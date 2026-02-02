@@ -39,11 +39,65 @@ const CommentNode = ({ comment, postId, depth }) => {
         }
     });
 
+    // Recursive helper to add reply
+    const addReplyToTree = (nodes, parentId, newReply) => {
+        return nodes.map(node => {
+            if (node.id === parentId) {
+                return {
+                    ...node,
+                    replies: [...(node.replies || []), newReply]
+                };
+            }
+            if (node.replies) {
+                return {
+                    ...node,
+                    replies: addReplyToTree(node.replies, parentId, newReply)
+                };
+            }
+            return node;
+        });
+    };
+
     const replyMutation = useMutation({
         mutationFn: (variables) => api.post(`posts/${postId}/comments/`, variables),
-        onSuccess: () => {
+        onMutate: async (variables) => {
+            await queryClient.cancelQueries(['post', postId]);
+            const previousPost = queryClient.getQueryData(['post', postId]);
+
+            queryClient.setQueryData(['post', postId], (oldPost) => {
+                if (!oldPost) return oldPost;
+
+                const newReply = {
+                    id: Date.now(),
+                    content: variables.content,
+                    author: { username: localStorage.getItem('username') || 'You' },
+                    created_at: new Date().toISOString(),
+                    likes_count: 0,
+                    is_liked: false,
+                    parent: comment.id,
+                    replies: []
+                };
+
+                return {
+                    ...oldPost,
+                    comments: addReplyToTree(oldPost.comments, comment.id, newReply)
+                };
+            });
+
             setIsReplying(false);
             setReplyContent('');
+
+            return { previousPost };
+        },
+        onError: (err, variables, context) => {
+            queryClient.setQueryData(['post', postId], context.previousPost);
+            alert("Failed to reply: " + err.message);
+        },
+        onSuccess: () => {
+            // Ideally we replace the optimistic ID with real ID, but for now invalidating is safer
+            // ensuring it doesn't jarringly remove the UI.
+            // But user complained about "time". Optimistic update solves the UX.
+            // We can invalidate quietly.
             queryClient.invalidateQueries(['post', postId]);
         }
     });
