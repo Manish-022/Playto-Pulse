@@ -10,9 +10,9 @@ A Reddit-like community feed with threaded comments and a 24h dynamic leaderboar
 - **Concurrency Support**: Database constraints to prevent double-voting.
 - **Optimized Queries**: Solves N+1 problem on recursive comments.
 - **High Performance**: 
-  - Paginated feeds (Infinite Scroll)
-  - Indexed database fields for <2s response times
-  - Optimized count aggregations
+    - Paginated feeds (Infinite Scroll)
+    - Indexed database fields for under 2s response times
+    - Optimized count aggregations
 
 ## Tech Stack
 - **Backend**: Django, Django REST Framework, SQLite (for demo)
@@ -42,6 +42,8 @@ npm install
 npm run dev
 ```
 App runs at [http://127.0.0.1:5173](http://127.0.0.1:5173).
+
+> **Note**: The frontend is configured to use the production backend by default. To use your local backend, update `baseURL` in `frontend/src/api.js` to `http://127.0.0.1:8000/api/`.
 
 ## Running with Docker (Optional)
 ```bash
