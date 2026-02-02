@@ -27,7 +27,22 @@ const CreatePost = () => {
                 comments_count: 0
             };
 
-            queryClient.setQueryData(['posts'], (old) => [newPost, ...(old || [])]);
+            queryClient.setQueryData(['posts'], (old) => {
+                if (!old) return old;
+
+                const newPages = [...old.pages];
+                if (newPages.length > 0) {
+                    newPages[0] = {
+                        ...newPages[0],
+                        results: [newPost, ...newPages[0].results]
+                    };
+                }
+
+                return {
+                    ...old,
+                    pages: newPages
+                };
+            });
             setContent(''); // Clear input immediately
 
             return { previousPosts };

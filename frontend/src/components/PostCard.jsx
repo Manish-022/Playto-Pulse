@@ -15,16 +15,23 @@ const PostCard = ({ post }) => {
             const previousPosts = queryClient.getQueryData(['posts']);
 
             queryClient.setQueryData(['posts'], (old) => {
-                return old.map(p => {
-                    if (p.id === post.id) {
-                        return {
-                            ...p,
-                            likes_count: p.is_liked ? p.likes_count - 1 : p.likes_count + 1,
-                            is_liked: !p.is_liked
-                        };
-                    }
-                    return p;
-                });
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page => ({
+                        ...page,
+                        results: page.results.map(p => {
+                            if (p.id === post.id) {
+                                return {
+                                    ...p,
+                                    likes_count: p.is_liked ? p.likes_count - 1 : p.likes_count + 1,
+                                    is_liked: !p.is_liked
+                                };
+                            }
+                            return p;
+                        })
+                    }))
+                };
             });
 
             return { previousPosts };
