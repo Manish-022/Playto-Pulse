@@ -39,9 +39,33 @@ const PostCard = ({ post }) => {
         onError: (err, newTodo, context) => {
             queryClient.setQueryData(['posts'], context.previousPosts);
         },
-        onSettled: () => {
-            queryClient.invalidateQueries(['posts']);
+        onSuccess: (data) => {
+            // Update with authoritative server data (optional, but safer than optimistic)
+            // But since we did optimistic update, we might just leave it.
+            // IMPORTANT: Do NOT invalidate ['posts'] here as it triggers mass refetch.
+            // Only invalidate leaderboard as it changes.
             queryClient.invalidateQueries(['leaderboard']);
+
+            // Update the specific post in the cache with the real likes count if needed
+            queryClient.setQueryData(['posts'], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page => ({
+                        ...page,
+                        results: page.results.map(p => {
+                            if (p.id === post.id) {
+                                return {
+                                    ...p,
+                                    likes_count: data.data.likes_count,
+                                    is_liked: data.data.liked
+                                };
+                            }
+                            return p;
+                        })
+                    }))
+                };
+            });
         }
     });
 
